@@ -22,6 +22,14 @@ export default class Pixiv implements ScrapeEngine {
       post.contentUrl = imgLink.href;
       post.contentType = guessContentType(post.contentUrl);
       post.referrer = document.location.origin;
+
+      let author_id: string | null | undefined = document.querySelector("aside a")?.getAttribute("data-gtm-value");
+
+      if (author_id) {
+        let tag = new ScrapedTag(`pixiv_user_${author_id}`, "artist");
+        post.tags.push(tag);
+      }
+
       result.tryAddPost(post);
     }
 
