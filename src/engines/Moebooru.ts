@@ -1,8 +1,8 @@
-import { ScrapeEngine, ScrapeResult, ScrapedPost, ScrapedTag } from "../ScrapeEngine";
+import { ScrapeEngineBase, ScrapeResult, ScrapedPost, ScrapedTag, ScrapedNote } from "../ScrapeEngine";
 import { TagCategory } from "../BooruTypes";
-import { guessContentType } from "../Utility";
+import { createNotesFromMoebooruBoxes, guessContentType, parseResolutionString } from "../Utility";
 
-export default class Moebooru implements ScrapeEngine {
+export default class Moebooru extends ScrapeEngineBase {
   name = "moebooru";
 
   canImport(url: Location): boolean {
@@ -52,6 +52,10 @@ export default class Moebooru implements ScrapeEngine {
               break;
           }
         }
+        // If size element
+        else if (matches[1] == "Size") {
+          post.resolution = parseResolutionString(matches[2]);
+        }
       }
     }
 
@@ -94,6 +98,15 @@ export default class Moebooru implements ScrapeEngine {
 
       let tag = new ScrapedTag(tagName, category);
       post.tags.push(tag);
+    }
+
+    // Set notes
+    const noteBoxSizeEl = document.getElementById("image") as HTMLImageElement;
+    if (!noteBoxSizeEl) {
+      this.log("noteBoxSizeEl is undefined.");
+    } else {
+      const boxSize: [number, number] = [noteBoxSizeEl.width, noteBoxSizeEl.height];
+      post.notes = createNotesFromMoebooruBoxes(document, boxSize);
     }
 
     result.tryAddPost(post);

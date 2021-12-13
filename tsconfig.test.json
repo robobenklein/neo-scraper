@@ -17,6 +17,7 @@
     "declaration": true
   },
   "include": [
-    "src/index.ts"
+    "src/index.ts",
+    "src/test/jest.d.ts"
   ]
 }

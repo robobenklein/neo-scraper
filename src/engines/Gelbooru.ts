@@ -1,7 +1,7 @@
-import { ScrapeEngine, ScrapeResult, ScrapedPost, ScrapedTag } from "../ScrapeEngine";
+import { ScrapeEngineBase, ScrapeResult, ScrapedPost, ScrapedTag } from "../ScrapeEngine";
 import { TagCategory } from "../BooruTypes";
 import { CategoryMap } from "./Common";
-import { guessContentType } from "../Utility";
+import { createNoteFromDanbooruArticle, guessContentType, parseResolutionString } from "../Utility";
 
 // Small hack to avoid screwing with semver
 enum Version {
@@ -9,7 +9,7 @@ enum Version {
   v025, // 0.2.5
 }
 
-export default class Gelbooru implements ScrapeEngine {
+export default class Gelbooru extends ScrapeEngineBase {
   name = "gelbooru";
 
   private readonly classNameToCategoryMap: CategoryMap = {
@@ -21,7 +21,11 @@ export default class Gelbooru implements ScrapeEngine {
 
   canImport(url: Location): boolean {
     return (
-      url.host == "safebooru.org" || url.host == "gelbooru.com" || url.host == "rule34.xxx" || url.host == "tbib.org"
+      url.host == "safebooru.org" ||
+      url.host == "gelbooru.com" ||
+      url.host == "rule34.xxx" ||
+      url.host == "tbib.org" ||
+      url.host == "xbooru.com"
     );
   }
 
@@ -32,6 +36,7 @@ export default class Gelbooru implements ScrapeEngine {
       case "safebooru.org":
       case "rule34.xxx":
       case "tbib.org":
+      case "xbooru.com":
         version = Version.v020;
         break;
       case "gelbooru.com":
@@ -42,7 +47,7 @@ export default class Gelbooru implements ScrapeEngine {
         return result;
     }
 
-    console.log("Gelbooru guessed version: " + version);
+    this.log("Guessed version: " + version);
 
     let post = new ScrapedPost();
     post.pageUrl = document.location.href;
@@ -52,10 +57,6 @@ export default class Gelbooru implements ScrapeEngine {
       .map((x) => x as HTMLAnchorElement)
       .filter((x) => x && x.innerText == "Original image")
       .map((x) => (post.contentUrl = x.href));
-
-    if (post.contentUrl == undefined) {
-      return result;
-    }
 
     // Set content type
     if (document.getElementById("gelcomVideoPlayer") != null) {
@@ -105,6 +106,10 @@ export default class Gelbooru implements ScrapeEngine {
                 break;
             }
           }
+          // If size element
+          else if (matches[1] == "Size") {
+            post.resolution = parseResolutionString(matches[2]);
+          }
         }
       }
     }
@@ -153,6 +158,20 @@ export default class Gelbooru implements ScrapeEngine {
         post.tags.push(tag);
       }
     }
+
+    // Try to load notes
+    // NOTE: This code is exactly the same as in the Danbooru engine.
+    // Which means that when you fix a bug here, you might also want to fix it in the Danbooru engine.
+    // Unless the bug is only limited to Gelbooru based sites, of course.
+    const noteEls = Array.from(document.querySelectorAll("section#notes > article")).map((x) => x as HTMLElement);
+
+    for (const el of noteEls) {
+      const note = createNoteFromDanbooruArticle(post, el);
+      if (note) {
+        post.notes.push(note);
+      }
+    }
+    // End of code duplication with Danbooru engine.
 
     result.tryAddPost(post);
 
