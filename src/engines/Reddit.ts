@@ -31,7 +31,6 @@ function getMapTags(
       let dim2 = Number.parseInt(match.groups!.dim2);
 
       if (postImgPreviewEl) {
-        // post.tags.push(new ScrapedTag("postImgPreviewEl provided"));
         const postImgPreviewBounds = postImgPreviewEl.getBoundingClientRect();
         if (postImgPreviewBounds.width > postImgPreviewBounds.height && dim1 < dim2) {
           // width and height tile info is reversed
@@ -39,7 +38,6 @@ function getMapTags(
         }
       }
 
-      // TODO check image dims
       post.tags.push(new ScrapedTag(`${dim1}_tiles_wide`, "tile_info"));
       post.tags.push(new ScrapedTag(`${dim2}_tiles_tall`, "tile_info"));
     }
